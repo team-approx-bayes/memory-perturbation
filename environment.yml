@@ -1,0 +1,16 @@
+name: mpe
+channels:
+  - defaults
+  - pytorch
+  - nvidia
+dependencies:
+  - matplotlib
+  - scikit-learn
+  - tqdm
+  - pytorch
+  - torchvision
+  - pytorch-cuda==11.8
+  - pip
+  - pip:
+    - ivon-opt==0.1
+    - laplace-torch==0.1a2
