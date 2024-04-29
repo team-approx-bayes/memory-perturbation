@@ -2,18 +2,16 @@ import os
 import sys
 import pickle
 import argparse
-import tqdm
 import numpy as np
 
 import torch
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 from torch.utils.data import DataLoader, Subset
-from torch.optim import SGD
 
 sys.path.append("..")
 from lib.models import get_model
 from lib.datasets import get_dataset
-from lib.utils import get_quick_loader, predict_train2, predict_test
+from lib.utils import get_quick_loader, predict_train2, predict_test, train_network
 from lib.variances import get_pred_vars_laplace
 
 def get_args():
@@ -44,31 +42,6 @@ def get_args():
     parser.set_defaults()
     return parser.parse_args()
 
-def train_network(net, trainloader, lr, lrmin, epochs, N):
-    net.train()
-    optim = SGD(net.parameters(), lr=lr, momentum=0.9)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=epochs, eta_min=lrmin)
-
-    losses = []
-    for _ in tqdm.tqdm(list(range(epochs))):
-        running_loss = 0
-        for X, y in trainloader:
-            optim.zero_grad()
-            X, y = X.float(), y
-            fs = net(X)
-            loss_ = criterion(fs, y)
-            p_ = parameters_to_vector(net.parameters())
-            reg_ = 1 / 2 * args.delta * p_.square().sum()
-            loss = loss_ + (1/N) * reg_
-            loss.backward()
-            optim.step()
-
-            running_loss += loss.item()
-        losses.append(running_loss)
-        scheduler.step()
-
-    return net, losses
-
 if __name__ == "__main__":
     args = get_args()
     print(args)
@@ -79,9 +52,6 @@ if __name__ == "__main__":
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('device', device)
-
-    # Loss
-    criterion = torch.nn.CrossEntropyLoss(reduction='mean')
 
     # Data
     ds_train, ds_test, transform_train = get_dataset(args.dataset, return_transform=True)
@@ -100,7 +70,7 @@ if __name__ == "__main__":
     trainloader_vars = DataLoader(ds_train, batch_size=args.bs_jacs, shuffle=False) # variance computation
 
     # Train base network and store parameters
-    net, losses = train_network(net, trainloader, args.lr, args.lrmin, args.epochs, n_train)
+    net, losses = train_network(net, trainloader, args.lr, args.lrmin, args.epochs, n_train, args.delta)
     w_star = parameters_to_vector(net.parameters()).detach().cpu().clone()
 
     # Evaluate on training data; residuals and lambdas
@@ -145,7 +115,7 @@ if __name__ == "__main__":
         trainloader_retrain = get_quick_loader(DataLoader(ds_train_perturbed, batch_size=args.bs, shuffle=True))
 
         # Retraining
-        net, losses = train_network(net, trainloader_retrain, args.lr_retrain, args.lrmin_retrain, args.epochs_retrain, n_train-1)
+        net, losses = train_network(net, trainloader_retrain, args.lr_retrain, args.lrmin_retrain, args.epochs_retrain, n_train-1, args.delta)
 
         # Evaluate softmax deviations
         net.eval()

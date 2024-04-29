@@ -7,10 +7,10 @@ dependencies:
   - matplotlib
   - scikit-learn
   - tqdm
-  - pytorch
-  - torchvision
-  - pytorch-cuda==11.8
   - pip
   - pip:
+    - torch
+    - torchvision
+    - torchaudio
     - ivon-opt==0.1
     - laplace-torch==0.1a2

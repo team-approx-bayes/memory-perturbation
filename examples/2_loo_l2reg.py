@@ -47,7 +47,7 @@ def train_network(net, delta):
     net.train()
 
     if args.optimizer == 'adamw':
-        optim = AdamW(net.parameters(), lr=args.lr, weight_decay=delta / n_train)
+        optim = AdamW(net.parameters(), lr=args.lr)
     elif args.optimizer == 'adam':
         optim = Adam(net.parameters(), lr=args.lr)
     elif args.optimizer == 'sgd':
@@ -63,11 +63,8 @@ def train_network(net, delta):
             X, y = X.float(), y
             fs = net(X)
             loss_ = criterion(fs, y)
-            if args.optimizer == 'adamw':
-                reg_ = 0
-            else:
-                p_ = parameters_to_vector(net.parameters())
-                reg_ = 1 / 2 * delta * p_.square().sum()
+            p_ = parameters_to_vector(net.parameters())
+            reg_ = 1 / 2 * delta * p_.square().sum()
             loss = loss_ + (1 / n_train) * reg_
             loss.backward()
             optim.step()

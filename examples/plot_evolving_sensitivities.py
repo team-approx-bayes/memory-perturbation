@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     # Load saved results
     dir = 'pickles/'
-    with open(dir+args.name_exp+'.pkl', 'rb') as file:
+    with open(dir + args.name_exp + '_evolving.pkl', 'rb') as file:
         results_dict = pickle.load(file)
     file.close()
 

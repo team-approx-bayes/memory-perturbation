@@ -123,7 +123,7 @@ if __name__ == "__main__":
     args = get_args()
     print(args)
 
-    evaluate_epochs = [1,2,5,10,20,30,40,50,75,100,150,200,250,300,350,400,450,500]
+    evaluate_epochs = [1,2,5,10,20,30,40,50,75,100,150,200,250,300]
 
     seed = 1
     np.random.seed(seed)

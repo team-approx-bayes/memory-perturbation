@@ -1,17 +1,50 @@
+from sklearn.metrics import accuracy_score
+import tqdm
 import numpy as np
+
 import torch
 from torch.nn import functional as F
-from sklearn.metrics import accuracy_score
+from torch.optim import SGD
+from torch.nn.utils import parameters_to_vector
 
-def get_estimated_nll(nc, residuals, vars, logits, all_targets, eps=1e-10):
+def train_network(net, trainloader, lr, lrmin, epochs, N, delta):
+    net.train()
+    optim = SGD(net.parameters(), lr=lr, momentum=0.9)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=epochs, eta_min=lrmin)
+    criterion = torch.nn.CrossEntropyLoss(reduction='mean')
+
+    losses = []
+    for _ in tqdm.tqdm(list(range(epochs))):
+        running_loss = 0
+        for X, y in trainloader:
+            optim.zero_grad()
+            X, y = X.float(), y
+            fs = net(X)
+            loss_ = criterion(fs, y)
+            p_ = parameters_to_vector(net.parameters())
+            reg_ = 1 / 2 * delta * p_.square().sum()
+            loss = loss_ + (1/N) * reg_
+            loss.backward()
+            optim.step()
+
+            running_loss += loss.item()
+        losses.append(running_loss)
+        scheduler.step()
+
+    return net, losses
+
+def get_estimated_nll(nc, residuals, vars, logits, all_targets, eps=1e-10, loco=False):
     sensitivities = residuals * vars
     logits_perturbed = sensitivities + logits
     probs_perturbed = torch.softmax(torch.from_numpy(logits_perturbed), dim=-1)
 
-    estimated_nll = []
-    for i in range(len(probs_perturbed)):
-        nll = - torch.sum((torch.log(probs_perturbed[i].clamp(min=eps)) * F.one_hot(all_targets, nc)),dim=1).mean().numpy()
-        estimated_nll.append(nll)
+    if loco:
+        estimated_nll = - torch.sum((torch.log(probs_perturbed.clamp(min=eps)) * F.one_hot(all_targets, nc)),dim=1).mean().numpy()
+    else:
+        estimated_nll = []
+        for i in range(len(probs_perturbed)):
+            nll = - torch.sum((torch.log(probs_perturbed[i].clamp(min=eps)) * F.one_hot(all_targets, nc)),dim=1).mean().numpy()
+            estimated_nll.append(nll)
     return estimated_nll
 
 def predict_train(net, loader, nc, all_targets, device='cuda', return_logits=False, eps=1e-10):
@@ -121,4 +154,3 @@ def get_quick_loader(loader, device='cuda'):
         return [(X.to(device), y.to(device)) for X, y in loader]
     else:
         return loader
-
