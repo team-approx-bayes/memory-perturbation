@@ -10,7 +10,8 @@ Paper: https://arxiv.org/abs/2310.19273
 
 ## Installation
 
-To create a conda environment `mpe` with all necessary dependencies run: `conda env create --file environment.yml`
+- To create a conda environment `mpe` with all necessary dependencies run: `conda env create --file environment.yml`
+- We use torch 2.2.1 with cuda 12.1.1
 
 **Additional information on dependencies**
 
@@ -98,6 +99,16 @@ python 4_evolving_sensitivities.py --name_exp mnist_mlp --dataset MNIST --model 
 **Fig. 11 (c):** CIFAR10, ResNet20
 ```
 python 4_evolving_sensitivities.py --name_exp cifar10_resnet20 --dataset CIFAR10 --model resnet20_frn --hess_init 0.1 --epochs 300 --lr 0.1 --lrmin 0 --bs 512 --delta 35 --bs_jacs 300
+```
+
+## Predicting the effect of class removal on generalization ##
+- `5_loco.py`: This script reproduces Fig. 3 (a).
+- Plot with `python plot_loco.py --names_exp XXX YYY` 
+
+**Fig. 3 (a):** FMNIST, LeNet & MLP (32, 16)
+```
+python 5_loco.py --name_exp fmnist_lenet --dataset FMNIST --model lenet --lr 1e-1 --lrmin 1e-3 --bs 256 --epochs 300 --delta 100 --lr_retrain 1e-4 --lrmin_retrain 1e-5 --epochs_retrain 1000 --bs_jacs 500
+python 5_loco.py --name_exp fmnist_mlp --dataset FMNIST --model small_mlp --lr 1e-2 --lrmin 1e-3 --bs 256 --epochs 300 --delta 100 --lr_retrain 1e-5 --lrmin_retrain 1e-6 --epochs_retrain 1000 --bs_jacs 500
 ```
 
 ## Troubleshooting
